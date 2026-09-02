@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>OMS订单系统</title>
+
+<!--
+  Pinned versions only. The unpinned `marked/marked.min.js` URL currently
+  resolves to v15, whose renderer.code signature changed from positional
+  (code, lang) to a token object — silently breaking the mermaid/plantuml
+  interception in this app. Pinning marked@4 keeps the v4 positional API.
+-->
+<script defer src="https://cdn.jsdelivr.net/npm/marked@4/marked.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/plantuml-encoder@1.4.0/dist/plantuml-encoder.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/panzoom@9.4.3/dist/panzoom.min.js"></script>
+
+<style>
+  :root {
+    --sidebar-bg: #1f2937;
+    --sidebar-text: #cbd5e1;
+    --sidebar-text-dim: #94a3b8;
+    --sidebar-active-bg: #111827;
+    --sidebar-active-border: #2b5fd6;
+    --accent: #2b5fd6;
+    --bg: #ffffff;
+    --text: #1f2329;
+    --text-dim: #646a73;
+    --border: #d0d7de;
+    --code-bg: #f6f8fa;
+    --warn-bg: #fff8c5;
+    --warn-border: #d4a72c;
+    --err-bg: #ffebe9;
+    --err-border: #cf222e;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.65;
+  }
+
+  /* ---------- layout ---------- */
+  .layout { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 260px;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    position: fixed;
+    inset: 0 auto 0 0;
+    padding: 20px 0;
+    overflow-y: auto;
+    z-index: 10;
+  }
+  .sidebar h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0 20px 18px;
+    padding: 6px 0 14px;
+    border-bottom: 1px solid #374151;
+    letter-spacing: 0.5px;
+  }
+  .menu { list-style: none; padding: 0; margin: 0; }
+  .menu li a {
+    display: block;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    padding: 11px 20px;
+    border-left: 3px solid transparent;
+    font-size: 14px;
+    transition: background 0.12s, color 0.12s;
+  }
+  .menu li a:hover {
+    background: rgba(255,255,255,0.04);
+    color: #fff;
+  }
+  .menu li a.active {
+    background: var(--sidebar-active-bg);
+    border-left-color: var(--sidebar-active-border);
+    color: #fff;
+    font-weight: 500;
+  }
+
+  .main {
+    margin-left: 260px;
+    flex: 1;
+    padding: 32px 48px 80px;
+    max-width: calc(100% - 260px);
+  }
+
+  /* ---------- markdown body ---------- */
+  .markdown-body { max-width: 1100px; }
+  .markdown-body h1,
+  .markdown-body h2,
+  .markdown-body h3,
+  .markdown-body h4 {
+    margin-top: 1.6em;
+    margin-bottom: 0.6em;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .markdown-body h1 {
+    font-size: 26px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .markdown-body h2 {
+    font-size: 21px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .markdown-body h3 { font-size: 17px; }
+  .markdown-body h4 { font-size: 15px; }
+  .markdown-body p { margin: 0.8em 0; }
+  .markdown-body a { color: var(--accent); text-decoration: none; }
+  .markdown-body a:hover { text-decoration: underline; }
+  .markdown-body ul, .markdown-body ol { padding-left: 1.6em; }
+  .markdown-body li { margin: 0.3em 0; }
+
+  .markdown-body blockquote {
+    margin: 1em 0;
+    padding: 0.6em 1em;
+    color: var(--text-dim);
+    border-left: 4px solid var(--border);
+    background: #fafbfc;
+  }
+
+  .markdown-body code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: 0.88em;
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .markdown-body pre {
+    background: var(--code-bg);
+    padding: 14px 16px;
+    border-radius: 8px;
+    overflow: auto;
+    font-size: 0.88em;
+    line-height: 1.5;
+  }
+  .markdown-body pre code {
+    background: transparent;
+    padding: 0;
+    font-size: inherit;
+  }
+
+  .markdown-body table {
+    border-collapse: collapse;
+    margin: 1em 0;
+    font-size: 0.92em;
+    width: auto;
+    max-width: 100%;
+  }
+  .markdown-body th,
+  .markdown-body td {
+    border: 1px solid var(--border);
+    padding: 6px 12px;
+    text-align: left;
+  }
+  .markdown-body th {
+    background: var(--code-bg);
+    font-weight: 600;
+  }
+  .markdown-body tr:nth-child(even) td { background: #fafbfc; }
+
+  /* ---------- diagrams (mermaid + plantuml share these) ---------- */
+  .diagram-box {
+    position: relative;
+    margin: 1.6em 0;
+    background: #fcfcfd;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;          /* clip panned content */
+    height: 520px;            /* MUST be explicit; panzoom transforms child */
+    resize: vertical;          /* user can drag taller */
+    min-height: 240px;
+  }
+  .diagram-inner {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    user-select: none;
+  }
+  .diagram-inner:active { cursor: grabbing; }
+  /* override mermaid's max-width:100% so panzoom transforms aren't clipped */
+  .diagram-inner svg,
+  .diagram-inner img {
+    max-width: none;
+    max-height: none;
+    display: block;
+  }
+  .diagram-inner img {
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+
+  .diagram-toolbar {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 5;
+    display: flex;
+    gap: 4px;
+    background: rgba(255,255,255,0.92);
+    padding: 4px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  }
+  .diagram-toolbar button {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--border);
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    color: var(--text);
+  }
+  .diagram-toolbar button:hover { background: var(--code-bg); }
+  .diagram-toolbar button.reset {
+    width: auto;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+  .diagram-hint {
+    position: absolute;
+    bottom: 6px;
+    right: 10px;
+    z-index: 4;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: rgba(255,255,255,0.85);
+    padding: 2px 6px;
+    border-radius: 4px;
+    pointer-events: none;
+  }
+
+  /* ---------- loading / empty / error states ---------- */
+  .loading,
+  .empty {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-dim);
+  }
+  .empty h2 {
+    color: var(--text);
+    margin: 0 0 12px;
+    border: none;
+    padding: 0;
+    font-size: 20px;
+  }
+  .empty p { margin: 8px 0; }
+  .empty code {
+    background: var(--code-bg);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.95em;
+  }
+  .empty .warn {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 18px auto 0;
+    max-width: 640px;
+    text-align: left;
+    color: #57410d;
+  }
+
+  .err-box {
+    margin: 1.6em 0;
+    padding: 14px 18px;
+    background: var(--err-bg);
+    border: 1px solid var(--err-border);
+    border-radius: 8px;
+    color: #82071e;
+  }
+  .err-box details {
+    margin-top: 8px;
+    font-size: 0.9em;
+  }
+  .err-box summary { cursor: pointer; color: var(--err-border); }
+  .err-box pre {
+    background: rgba(0,0,0,0.04);
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    overflow: auto;
+    max-height: 220px;
+  }
+
+  /* ---------- disclaimer (PlantUML third-party) ---------- */
+  .disclaimer {
+    margin: 1em 0 1.4em;
+    padding: 10px 14px;
+    background: #f0f7ff;
+    border: 1px solid #b6d4fe;
+    border-radius: 6px;
+    color: #084c8d;
+    font-size: 13px;
+  }
+
+  /* small screens: stack layout instead of squeezing sidebar */
+  @media (max-width: 720px) {
+    .layout { flex-direction: column; }
+    .sidebar { position: relative; width: 100%; inset: auto; padding: 12px 0; }
+    .main { margin-left: 0; max-width: 100%; padding: 20px 18px 60px; }
+    .menu { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 12px; }
+    .menu li a { padding: 8px 12px; border-left: none; border-bottom: 3px solid transparent; }
+    .menu li a.active { border-left: none; border-bottom-color: var(--sidebar-active-border); }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <h1>OMS订单系统</h1>
+    <ul class="menu" id="menu"></ul>
+  </aside>
+
+  <main class="main">
+    <div id="content" class="markdown-body">
+      <div class="loading">加载中…</div>
+    </div>
+  </main>
+</div>
+
+<script>
+'use strict';
+
+// -------- config --------
+const MENU = ['测试用例', '物理ER图', '逻辑ER图', '架构图'];
+const PLANTUML_BASE = 'https://www.plantuml.com/plantuml/svg/';
+
+// panzoom instances, disposed on every menu change to prevent listener leak
+const panzoomInstances = [];
+
+// -------- marked@4: intercept mermaid & plantuml fenced blocks --------
+// marked@4 signature is positional: (code, lang, escaped). v15+ uses a token
+// object and would silently no-op our override. Pinned marked@4 in <script>.
+function buildRenderer() {
+  const r = new marked.Renderer();
+  const orig = r.code.bind(r);
+  r.code = function (code, lang) {
+    const language = (lang || '').trim().toLowerCase();
+    if (language === 'mermaid') {
+      return '<div class="diagram-box" data-type="mermaid" '
+           + 'data-src="' + encodeURIComponent(code) + '"></div>';
+    }
+    if (language === 'plantuml' || language === 'puml' || language === 'uml') {
+      return '<div class="diagram-box" data-type="plantuml" '
+           + 'data-src="' + encodeURIComponent(code) + '"></div>';
+    }
+    return orig(code, lang);
+  };
+  return r;
+}
+
+function setupMarked() {
+  marked.setOptions({
+    renderer: buildRenderer(),
+    gfm: true,
+    breaks: false,
+  });
+}
+
+// -------- mermaid init (runs after defer-loaded bundle is ready) --------
+function initMermaid() {
+  if (typeof mermaid === 'undefined') return;
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'default',
+    securityLevel: 'loose',     // preserve <br/> inside labels
+    themeVariables: {
+      primaryColor: '#eef3ff',
+      primaryTextColor: '#1f2329',
+      primaryBorderColor: '#2b5fd6',
+      lineColor: '#646a73',
+      fontSize: '13px',
+    },
+    flowchart: { useMaxWidth: false, htmlLabels: true },
+    er:        { useMaxWidth: false },
+    sequence:  { useMaxWidth: false },
+  });
+}
+
+// -------- navigation --------
+function renderMenu() {
+  const ul = document.getElementById('menu');
+  ul.innerHTML = '';
+  MENU.forEach(name => {
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.href = '#' + encodeURIComponent(name);
+    a.textContent = name;
+    a.dataset.name = name;
+    li.appendChild(a);
+    ul.appendChild(li);
+  });
+}
+
+function setActive(name) {
+  document.querySelectorAll('#menu a').forEach(a => {
+    a.classList.toggle('active', a.dataset.name === name);
+  });
+}
+
+function route() {
+  const raw = decodeURIComponent((location.hash || '').slice(1));
+  const name = MENU.includes(raw) ? raw : MENU[0];
+  setActive(name);
+  loadDoc(name);
+}
+
+// -------- load + render markdown --------
+async function loadDoc(name) {
+  destroyPanzooms();
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="loading">加载中…</div>';
+
+  try {
+    const url = './' + encodeURIComponent(name) + '.md';
+    const res = await fetch(url, { cache: 'no-cache' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const md = await res.text();
+    content.innerHTML = marked.parse(md);
+    await renderDiagrams(content);
+    // show PlantUML third-party disclaimer if any plantuml diagrams are present
+    if (content.querySelector('[data-type="plantuml"]')) {
+      const note = document.createElement('div');
+      note.className = 'disclaimer';
+      note.innerHTML = '⚠️ 本页 PlantUML 图表通过公共渲染服务 <code>plantuml.com</code> 生成，'
+                     + '图表源文会发送到该服务器处理。如需离线或内网渲染，可改用 Kroki/自托管服务。';
+      content.insertBefore(note, content.firstChild);
+    }
+  } catch (err) {
+    content.innerHTML = emptyState(name, err);
+  }
+}
+
+function emptyState(name, err) {
+  const isFileProto = location.protocol === 'file:';
+  return '<div class="empty">'
+    + '<h2>文件不存在或无法加载</h2>'
+    + '<p>未能加载 <code>' + escapeHtml(name) + '.md</code>（' + escapeHtml(err.message) + '）</p>'
+    + (isFileProto
+        ? '<div class="warn"><b>检测到 file:// 协议。</b>'
+          + '浏览器禁止本地文件使用 <code>fetch</code>，因此无法加载 <code>.md</code>。<br><br>'
+          + '请在 <code>D:\\demos\\md-render</code> 目录下启动一个本地服务，例如：<br><br>'
+          + '<code>python -m http.server 8000</code><br><br>'
+          + '然后访问 <code>http://localhost:8000/</code>。</div>'
+        : '<p>请确认该 <code>.md</code> 文件与 <code>index.html</code> 位于同一目录。</p>')
+    + '</div>';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// -------- diagram pass: mermaid.render() per box (no batch run()) --------
+async function renderDiagrams(root) {
+  const boxes = Array.from(root.querySelectorAll('.diagram-box'));
+  for (const box of boxes) {
+    const type = box.dataset.type;
+    const src  = decodeURIComponent(box.dataset.src || '');
+
+    const inner = document.createElement('div');
+    inner.className = 'diagram-inner';
+    box.appendChild(inner);
+    addToolbar(box);
+
+    try {
+      if (type === 'mermaid') {
+        if (typeof mermaid === 'undefined') throw new Error('mermaid 库尚未加载完成');
+        // mermaid.render() returns { svg }; per-diagram so one bad diagram
+        // doesn't blank siblings (which batch mermaid.run() can do).
+        const id = 'mmd-' + Math.random().toString(36).slice(2);
+        const { svg } = await mermaid.render(id, src);
+        inner.innerHTML = svg;
+      } else if (type === 'plantuml') {
+        if (typeof plantumlEncoder === 'undefined') {
+          throw new Error('plantuml-encoder 库尚未加载完成');
+        }
+        await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.alt = 'PlantUML diagram';
+          img.onload = () => resolve();
+          img.onerror = () => reject(new Error('PlantUML 服务不可达或返回错误'));
+          img.src = PLANTUML_BASE + plantumlEncoder.encode(src);
+          inner.appendChild(img);
+        });
+      } else {
+        throw new Error('未知图表类型: ' + type);
+      }
+      attachPanzoom(inner);
+    } catch (e) {
+      const label = (type === 'mermaid' ? 'Mermaid' : type === 'plantuml' ? 'PlantUML' : type);
+      inner.innerHTML = errBox(label + ' 渲染失败: ' + (e && e.message ? e.message : e), src);
+    }
+  }
+}
+
+function errBox(message, source) {
+  return '<div class="err-box">'
+    + '<div><b>' + escapeHtml(message) + '</b></div>'
+    + '<details><summary>查看源文</summary>'
+    + '<pre>' + escapeHtml(source) + '</pre>'
+    + '</details>'
+    + '</div>';
+}
+
+// -------- panzoom --------
+function attachPanzoom(inner) {
+  if (typeof panzoom === 'undefined') return;
+  const pz = panzoom(inner, {
+    maxZoom: 8,
+    minZoom: 0.2,
+    smoothScroll: false,
+    bounds: true,
+    boundsPadding: 0.15,
+    zoomDoubleClickSpeed: 1,            // disable double-click zoom (surprising)
+    beforeWheel: e => !(e.ctrlKey || e.metaKey), // only Ctrl/⌘+wheel zooms
+  });
+  panzoomInstances.push(pz);
+  inner.__pz = pz;
+}
+
+function destroyPanzooms() {
+  while (panzoomInstances.length) {
+    try { panzoomInstances.pop().dispose(); } catch (_) {}
+  }
+}
+
+function addToolbar(box) {
+  const bar = document.createElement('div');
+  bar.className = 'diagram-toolbar';
+  bar.innerHTML =
+      '<button title="放大" data-act="in">+</button>'
+    + '<button title="缩小" data-act="out">−</button>'
+    + '<button class="reset" title="重置视图" data-act="reset">重置</button>';
+  bar.addEventListener('click', e => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const inner = box.querySelector('.diagram-inner');
+    const pz = inner && inner.__pz;
+    if (!pz) return;
+    const r = box.getBoundingClientRect();
+    const cx = r.width / 2, cy = r.height / 2;
+    if (btn.dataset.act === 'in')       pz.smoothZoom(cx, cy, 1.25);
+    else if (btn.dataset.act === 'out') pz.smoothZoom(cx, cy, 1/1.25);
+    else if (btn.dataset.act === 'reset') {
+      pz.moveTo(0, 0);
+      pz.zoomAbs(0, 0, 1);
+    }
+  });
+  box.appendChild(bar);
+
+  const hint = document.createElement('div');
+  hint.className = 'diagram-hint';
+  hint.textContent = 'Ctrl+滚轮缩放 · 拖拽平移';
+  box.appendChild(hint);
+}
+
+// -------- bootstrap --------
+// DOMContentLoaded fires AFTER all deferred <script>s have executed, so by the
+// time boot() runs, marked/mermaid/plantumlEncoder/panzoom are guaranteed to
+// be defined globals.
+function boot() {
+  setupMarked();
+  initMermaid();
+  renderMenu();
+  window.addEventListener('hashchange', route);
+  route();
+}
+
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>
