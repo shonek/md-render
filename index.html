@@ -479,6 +479,9 @@ async function renderDiagrams(root) {
   for (const box of boxes) {
     const type = box.dataset.type;
     const src  = decodeURIComponent(box.dataset.src || '');
+    // mermaid.render() 在解析失败前已把 <div id="d{id}"> 追加到 document.body，
+    // 抛出时绕过清理，导致 body 末尾出现错误提示。记下 id 以便 catch 里移除。
+    let mermaidId = null;
 
     const inner = document.createElement('div');
     inner.className = 'diagram-inner';
@@ -490,8 +493,8 @@ async function renderDiagrams(root) {
         if (typeof mermaid === 'undefined') throw new Error('mermaid 库尚未加载完成');
         // mermaid.render() returns { svg }; per-diagram so one bad diagram
         // doesn't blank siblings (which batch mermaid.run() can do).
-        const id = 'mmd-' + Math.random().toString(36).slice(2);
-        const { svg } = await mermaid.render(id, src);
+        mermaidId = 'mmd-' + Math.random().toString(36).slice(2);
+        const { svg } = await mermaid.render(mermaidId, src);
         inner.innerHTML = svg;
       } else if (type === 'plantuml') {
         if (typeof plantumlEncoder === 'undefined') {
@@ -510,6 +513,12 @@ async function renderDiagrams(root) {
       }
       attachPanzoom(inner);
     } catch (e) {
+      // 移除 mermaid 残留的 <div id="d{id}">（API 的清理在 throw 之后，不会执行），
+      // 让错误只在图表原位置显示，不再追加到 body 末尾。
+      if (mermaidId) {
+        const stray = document.getElementById('d' + mermaidId);
+        if (stray) stray.remove();
+      }
       const label = (type === 'mermaid' ? 'Mermaid' : type === 'plantuml' ? 'PlantUML' : type);
       inner.innerHTML = errBox(label + ' 渲染失败: ' + (e && e.message ? e.message : e), src);
     }
