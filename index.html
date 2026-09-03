@@ -250,6 +250,48 @@
     pointer-events: none;
   }
 
+  /* ---------- html code blocks (rendered in shadow DOM) ---------- */
+  /* 宿主页只负责外壳（边框/标题栏），HTML 内容的样式都在 shadow 内部，
+     既不继承也不影响宿主页，达到双向样式隔离。 */
+  .html-box {
+    margin: 1.6em 0;
+    background: #fcfcfd;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .html-box-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 12px;
+    background: #f6f8fa;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .html-box-header .label {
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.4px;
+  }
+  .html-toolbar { display: flex; gap: 4px; }
+  .html-toolbar button {
+    height: 24px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    background: #fff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .html-toolbar button:hover {
+    background: #fff;
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .html-render { display: block; }
+
   /* ---------- loading / empty / error states ---------- */
   .loading,
   .empty {
@@ -366,6 +408,10 @@ function buildRenderer() {
       return '<div class="diagram-box" data-type="plantuml" '
            + 'data-src="' + encodeURIComponent(code) + '"></div>';
     }
+    if (language === 'html' || language === 'htm') {
+      return '<div class="html-box" data-type="html" '
+           + 'data-src="' + encodeURIComponent(code) + '"></div>';
+    }
     return orig(code, lang);
   };
   return r;
@@ -440,6 +486,7 @@ async function loadDoc(name) {
     const md = await res.text();
     content.innerHTML = marked.parse(md);
     await renderDiagrams(content);
+    renderHtmlBoxes(content);
     // show PlantUML third-party disclaimer if any plantuml diagrams are present
     if (content.querySelector('[data-type="plantuml"]')) {
       const note = document.createElement('div');
@@ -532,6 +579,92 @@ function errBox(message, source) {
     + '<pre>' + escapeHtml(source) + '</pre>'
     + '</details>'
     + '</div>';
+}
+
+// -------- html pass: render fenced ```html blocks inside a shadow DOM --------
+// 目的：把用户写的 HTML 片段放进 Shadow DOM —— 宿主页的 CSS 不会渗入影响渲染，
+// 反过来用户 HTML 里的选择器也不会影响宿主页（h1/code/table 等保持原样）。
+// 限制：用户写入的脚本会照常执行（同源 shadow 树内仍可运行），信任作者本人的
+// markdown 源。
+function renderHtmlBoxes(root) {
+  const boxes = Array.from(root.querySelectorAll('.html-box'));
+  for (const box of boxes) {
+    const src = decodeURIComponent(box.dataset.src || '');
+    addHtmlHeader(box);
+    const host = document.createElement('div');
+    host.className = 'html-render';
+    box.appendChild(host);
+
+    const shadow = host.attachShadow({ mode: 'open' });
+    shadow.innerHTML = HTML_SHADOW_STYLE;
+    const frame = document.createElement('div');
+    frame.className = 'frame';
+    frame.innerHTML = src;
+    shadow.appendChild(frame);
+  }
+}
+
+// 注入到 shadow 内部的基础排版样式，仅作用于该 shadow 树。
+// 用户写 <h1>/<p>/<table> 等常见元素时不会因为 shadow 隔离而"裸奔"。
+const HTML_SHADOW_STYLE =
+  '<style>'
+  + ':host{display:block;}'
+  + '.frame{box-sizing:border-box;padding:14px 18px;color:#1f2329;line-height:1.65;'
+  +   'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;}'
+  + '.frame *{box-sizing:border-box;}'
+  + '.frame h1,.frame h2,.frame h3,.frame h4{margin-top:1.4em;margin-bottom:.5em;font-weight:600;line-height:1.3;}'
+  + '.frame h1{font-size:22px;padding-bottom:6px;border-bottom:1px solid #d0d7de;}'
+  + '.frame h2{font-size:18px;padding-bottom:4px;border-bottom:1px solid #d0d7de;}'
+  + '.frame h3{font-size:16px;}'
+  + '.frame h4{font-size:15px;}'
+  + '.frame p{margin:.6em 0;}'
+  + '.frame a{color:#2b5fd6;text-decoration:none;}'
+  + '.frame a:hover{text-decoration:underline;}'
+  + '.frame ul,.frame ol{padding-left:1.6em;margin:.6em 0;}'
+  + '.frame li{margin:.2em 0;}'
+  + '.frame blockquote{margin:1em 0;padding:.5em 1em;color:#646a73;border-left:4px solid #d0d7de;background:#fafbfc;}'
+  + '.frame code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;background:#f6f8fa;padding:2px 6px;border-radius:4px;font-size:.9em;}'
+  + '.frame pre{background:#f6f8fa;padding:12px 14px;border-radius:6px;overflow:auto;font-size:.88em;line-height:1.5;}'
+  + '.frame pre code{background:transparent;padding:0;}'
+  + '.frame table{border-collapse:collapse;margin:.6em 0;font-size:.92em;}'
+  + '.frame th,.frame td{border:1px solid #d0d7de;padding:6px 12px;text-align:left;}'
+  + '.frame th{background:#f6f8fa;font-weight:600;}'
+  + '.frame tr:nth-child(even) td{background:#fafbfc;}'
+  + '.frame button,.frame input,.frame select,.frame textarea{font:inherit;color:inherit;}'
+  + '.frame img{max-width:100%;}'
+  + '</style>';
+
+function addHtmlHeader(box) {
+  const header = document.createElement('div');
+  header.className = 'html-box-header';
+  header.innerHTML =
+      '<span class="label">HTML 预览</span>'
+    + '<div class="html-toolbar">'
+    +   '<button data-act="copy" title="复制源码">复制</button>'
+    + '</div>';
+  header.addEventListener('click', async e => {
+    const btn = e.target.closest('button');
+    if (!btn || btn.dataset.act !== 'copy') return;
+    const src = decodeURIComponent(box.dataset.src || '');
+    const old = btn.textContent;
+    try {
+      await navigator.clipboard.writeText(src);
+      btn.textContent = '已复制';
+    } catch (_) {
+      // file:// 或权限拒绝时的兜底：临时 textarea + execCommand
+      const ta = document.createElement('textarea');
+      ta.value = src;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (_) {}
+      ta.remove();
+      btn.textContent = '已复制';
+    }
+    setTimeout(() => { btn.textContent = old; }, 1200);
+  });
+  box.appendChild(header);
 }
 
 // -------- panzoom --------
