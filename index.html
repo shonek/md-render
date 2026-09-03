@@ -1,737 +1,1065 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>OMS订单系统</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>$TITLE$</title>
 
-<!--
+    <!--
   Pinned versions only. The unpinned `marked/marked.min.js` URL currently
   resolves to v15, whose renderer.code signature changed from positional
   (code, lang) to a token object — silently breaking the mermaid/plantuml
   interception in this app. Pinning marked@4 keeps the v4 positional API.
 -->
-<script defer src="https://cdn.jsdelivr.net/npm/marked@4/marked.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/plantuml-encoder@1.4.0/dist/plantuml-encoder.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/panzoom@9.4.3/dist/panzoom.min.js"></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/marked@4/marked.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/plantuml-encoder@1.4.0/dist/plantuml-encoder.min.js"
+    ></script>
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/panzoom@9.4.3/dist/panzoom.min.js"
+    ></script>
 
-<style>
-  :root {
-    --sidebar-bg: #1f2937;
-    --sidebar-text: #cbd5e1;
-    --sidebar-text-dim: #94a3b8;
-    --sidebar-active-bg: #111827;
-    --sidebar-active-border: #2b5fd6;
-    --accent: #2b5fd6;
-    --bg: #ffffff;
-    --text: #1f2329;
-    --text-dim: #646a73;
-    --border: #d0d7de;
-    --code-bg: #f6f8fa;
-    --warn-bg: #fff8c5;
-    --warn-border: #d4a72c;
-    --err-bg: #ffebe9;
-    --err-border: #cf222e;
-  }
+    <style>
+      :root {
+        --sidebar-bg: #1f2937;
+        --sidebar-text: #cbd5e1;
+        --sidebar-text-dim: #94a3b8;
+        --sidebar-active-bg: #111827;
+        --sidebar-active-border: #2b5fd6;
+        --accent: #2b5fd6;
+        --bg: #ffffff;
+        --text: #1f2329;
+        --text-dim: #646a73;
+        --border: #d0d7de;
+        --code-bg: #f6f8fa;
+        --warn-bg: #fff8c5;
+        --warn-border: #d4a72c;
+        --err-bg: #ffebe9;
+        --err-border: #cf222e;
+      }
 
-  * { box-sizing: border-box; }
+      * {
+        box-sizing: border-box;
+      }
 
-  html, body {
-    margin: 0; padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
-      "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
-    color: var(--text);
-    background: var(--bg);
-    line-height: 1.65;
-  }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+        color: var(--text);
+        background: var(--bg);
+        line-height: 1.65;
+      }
 
-  /* ---------- layout ---------- */
-  .layout { display: flex; min-height: 100vh; }
+      /* ---------- layout ---------- */
+      .layout {
+        display: flex;
+        min-height: 100vh;
+      }
 
-  .sidebar {
-    width: 260px;
-    background: var(--sidebar-bg);
-    color: var(--sidebar-text);
-    position: fixed;
-    inset: 0 auto 0 0;
-    padding: 20px 0;
-    overflow-y: auto;
-    z-index: 10;
-  }
-  .sidebar h1 {
-    font-size: 18px;
-    font-weight: 600;
-    color: #fff;
-    margin: 0 20px 18px;
-    padding: 6px 0 14px;
-    border-bottom: 1px solid #374151;
-    letter-spacing: 0.5px;
-  }
-  .menu { list-style: none; padding: 0; margin: 0; }
-  .menu li a {
-    display: block;
-    color: var(--sidebar-text);
-    text-decoration: none;
-    padding: 11px 20px;
-    border-left: 3px solid transparent;
-    font-size: 14px;
-    transition: background 0.12s, color 0.12s;
-  }
-  .menu li a:hover {
-    background: rgba(255,255,255,0.04);
-    color: #fff;
-  }
-  .menu li a.active {
-    background: var(--sidebar-active-bg);
-    border-left-color: var(--sidebar-active-border);
-    color: #fff;
-    font-weight: 500;
-  }
+      .sidebar {
+        width: 260px;
+        background: var(--sidebar-bg);
+        color: var(--sidebar-text);
+        position: fixed;
+        inset: 0 auto 0 0;
+        padding: 20px 0;
+        overflow-y: auto;
+        z-index: 10;
+      }
+      .sidebar h1 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #fff;
+        margin: 0 20px 18px;
+        padding: 6px 0 14px;
+        border-bottom: 1px solid #374151;
+        letter-spacing: 0.5px;
+      }
+      .menu {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .menu li a {
+        display: block;
+        color: var(--sidebar-text);
+        text-decoration: none;
+        padding: 11px 20px;
+        border-left: 3px solid transparent;
+        font-size: 14px;
+        line-height: 1.5;
+        /* 单行省略；超长名称 hover 时通过 title 属性看完整文本 */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        transition:
+          background 0.12s,
+          color 0.12s;
+      }
+      .menu li a:hover {
+        background: rgba(255, 255, 255, 0.04);
+        color: #fff;
+      }
+      .menu li a.active {
+        background: var(--sidebar-active-bg);
+        border-left-color: var(--sidebar-active-border);
+        color: #fff;
+        font-weight: 500;
+      }
 
-  .main {
-    margin-left: 260px;
-    flex: 1;
-    padding: 32px 48px 80px;
-    max-width: calc(100% - 260px);
-  }
+      /* ---------- multi-level menu: submenu indent + group header ---------- */
+      /* 嵌套子菜单：缩进 36px，字体略小 */
+      .menu .submenu {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .menu .submenu li a {
+        padding-left: 36px;
+        font-size: 13px;
+      }
+      /* 分组标题：button 化，点击折叠/展开；caret 旋转作视觉指示。
+         padding-left 设为 20px，让 caret 起点与 .menu li a 的文字起点（20px）对齐；
+         name 落在 caret(10) + gap(6) = 36px 起，子菜单 padding-left: 36px 与之对齐。
+         line-height 显式设为 1.5，与 .menu li a 一致；不靠 body 继承 1.65，
+         否则 flex 容器里 caret(9px) 和 name(14px) 各自算出不同 line-box，视觉高度飘。 */
+      .menu .menu-group {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        width: 100%;
+        padding: 11px 20px;
+        margin: 0;
+        background: transparent;
+        border: none;
+        color: var(--sidebar-text-dim);
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.5;
+        letter-spacing: 0.4px;
+        cursor: pointer;
+        user-select: none;
+        text-align: left;
+        font-family: inherit;
+      }
+      .menu .menu-group:hover {
+        color: #fff;
+      }
+      .menu .menu-group:focus {
+        outline: none;
+        color: #fff;
+      }
+      .menu .menu-group:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
+      }
+      .menu .menu-group-caret {
+        display: inline-block;
+        width: 10px;
+        font-size: 10px;
+        flex: 0 0 auto;
+        transition: transform 0.15s ease;
+      }
+      .menu .menu-group-name {
+        flex: 1 1 auto;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      /* 折叠态：caret 旋成 ▶，子菜单隐藏。
+         caret 不是 li 的直接子（在 button 里），用后代选择器。 */
+      .menu-group-item.collapsed .menu-group-caret {
+        transform: rotate(-90deg);
+      }
+      .menu-group-item.collapsed > .submenu {
+        display: none;
+      }
 
-  /* ---------- markdown body ---------- */
-  .markdown-body { max-width: 1100px; }
-  .markdown-body h1,
-  .markdown-body h2,
-  .markdown-body h3,
-  .markdown-body h4 {
-    margin-top: 1.6em;
-    margin-bottom: 0.6em;
-    font-weight: 600;
-    line-height: 1.3;
-  }
-  .markdown-body h1 {
-    font-size: 26px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border);
-  }
-  .markdown-body h2 {
-    font-size: 21px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid var(--border);
-  }
-  .markdown-body h3 { font-size: 17px; }
-  .markdown-body h4 { font-size: 15px; }
-  .markdown-body p { margin: 0.8em 0; }
-  .markdown-body a { color: var(--accent); text-decoration: none; }
-  .markdown-body a:hover { text-decoration: underline; }
-  .markdown-body ul, .markdown-body ol { padding-left: 1.6em; }
-  .markdown-body li { margin: 0.3em 0; }
+      .main {
+        margin-left: 260px;
+        flex: 1;
+        padding: 32px 48px 80px;
+        max-width: calc(100% - 260px);
+      }
 
-  .markdown-body blockquote {
-    margin: 1em 0;
-    padding: 0.6em 1em;
-    color: var(--text-dim);
-    border-left: 4px solid var(--border);
-    background: #fafbfc;
-  }
+      /* ---------- markdown body ---------- */
+      .markdown-body {
+        max-width: 1100px;
+      }
+      .markdown-body h1,
+      .markdown-body h2,
+      .markdown-body h3,
+      .markdown-body h4 {
+        margin-top: 1.6em;
+        margin-bottom: 0.6em;
+        font-weight: 600;
+        line-height: 1.3;
+      }
+      .markdown-body h1 {
+        font-size: 26px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+      }
+      .markdown-body h2 {
+        font-size: 21px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid var(--border);
+      }
+      .markdown-body h3 {
+        font-size: 17px;
+      }
+      .markdown-body h4 {
+        font-size: 15px;
+      }
+      .markdown-body p {
+        margin: 0.8em 0;
+      }
+      .markdown-body a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      .markdown-body a:hover {
+        text-decoration: underline;
+      }
+      .markdown-body ul,
+      .markdown-body ol {
+        padding-left: 1.6em;
+      }
+      .markdown-body li {
+        margin: 0.3em 0;
+      }
 
-  .markdown-body code {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-    font-size: 0.88em;
-    background: var(--code-bg);
-    padding: 2px 6px;
-    border-radius: 4px;
-  }
-  .markdown-body pre {
-    background: var(--code-bg);
-    padding: 14px 16px;
-    border-radius: 8px;
-    overflow: auto;
-    font-size: 0.88em;
-    line-height: 1.5;
-  }
-  .markdown-body pre code {
-    background: transparent;
-    padding: 0;
-    font-size: inherit;
-  }
+      .markdown-body blockquote {
+        margin: 1em 0;
+        padding: 0.6em 1em;
+        color: var(--text-dim);
+        border-left: 4px solid var(--border);
+        background: #fafbfc;
+      }
 
-  .markdown-body table {
-    border-collapse: collapse;
-    margin: 1em 0;
-    font-size: 0.92em;
-    width: auto;
-    max-width: 100%;
-  }
-  .markdown-body th,
-  .markdown-body td {
-    border: 1px solid var(--border);
-    padding: 6px 12px;
-    text-align: left;
-  }
-  .markdown-body th {
-    background: var(--code-bg);
-    font-weight: 600;
-  }
-  .markdown-body tr:nth-child(even) td { background: #fafbfc; }
+      .markdown-body code {
+        font-family:
+          ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono",
+          monospace;
+        font-size: 0.88em;
+        background: var(--code-bg);
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+      .markdown-body pre {
+        background: var(--code-bg);
+        padding: 14px 16px;
+        border-radius: 8px;
+        overflow: auto;
+        font-size: 0.88em;
+        line-height: 1.5;
+      }
+      .markdown-body pre code {
+        background: transparent;
+        padding: 0;
+        font-size: inherit;
+      }
 
-  /* ---------- diagrams (mermaid + plantuml share these) ---------- */
-  .diagram-box {
-    position: relative;
-    margin: 1.6em 0;
-    background: #fcfcfd;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;          /* clip panned content */
-    height: 520px;            /* MUST be explicit; panzoom transforms child */
-    resize: vertical;          /* user can drag taller */
-    min-height: 240px;
-  }
-  .diagram-inner {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: grab;
-    user-select: none;
-  }
-  .diagram-inner:active { cursor: grabbing; }
-  /* override mermaid's max-width:100% so panzoom transforms aren't clipped */
-  .diagram-inner svg,
-  .diagram-inner img {
-    max-width: none;
-    max-height: none;
-    display: block;
-  }
-  .diagram-inner img {
-    user-select: none;
-    -webkit-user-drag: none;
-  }
+      .markdown-body table {
+        border-collapse: collapse;
+        margin: 1em 0;
+        font-size: 0.92em;
+        width: auto;
+        max-width: 100%;
+      }
+      .markdown-body th,
+      .markdown-body td {
+        border: 1px solid var(--border);
+        padding: 6px 12px;
+        text-align: left;
+      }
+      .markdown-body th {
+        background: var(--code-bg);
+        font-weight: 600;
+      }
+      .markdown-body tr:nth-child(even) td {
+        background: #fafbfc;
+      }
 
-  .diagram-toolbar {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    z-index: 5;
-    display: flex;
-    gap: 4px;
-    background: rgba(255,255,255,0.92);
-    padding: 4px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-  }
-  .diagram-toolbar button {
-    width: 28px;
-    height: 28px;
-    border: 1px solid var(--border);
-    background: #fff;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    line-height: 1;
-    color: var(--text);
-  }
-  .diagram-toolbar button:hover { background: var(--code-bg); }
-  .diagram-toolbar button.reset {
-    width: auto;
-    padding: 0 8px;
-    font-size: 12px;
-  }
-  .diagram-hint {
-    position: absolute;
-    bottom: 6px;
-    right: 10px;
-    z-index: 4;
-    font-size: 11px;
-    color: var(--text-dim);
-    background: rgba(255,255,255,0.85);
-    padding: 2px 6px;
-    border-radius: 4px;
-    pointer-events: none;
-  }
+      /* ---------- diagrams (mermaid + plantuml share these) ---------- */
+      .diagram-box {
+        position: relative;
+        margin: 1.6em 0;
+        background: #fcfcfd;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden; /* clip panned content */
+        height: 520px; /* MUST be explicit; panzoom transforms child */
+        resize: vertical; /* user can drag taller */
+        min-height: 240px;
+      }
+      .diagram-inner {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: grab;
+        user-select: none;
+      }
+      .diagram-inner:active {
+        cursor: grabbing;
+      }
+      /* override mermaid's max-width:100% so panzoom transforms aren't clipped */
+      .diagram-inner svg,
+      .diagram-inner img {
+        max-width: none;
+        max-height: none;
+        display: block;
+      }
+      .diagram-inner img {
+        user-select: none;
+        -webkit-user-drag: none;
+      }
 
-  /* ---------- html code blocks (rendered in shadow DOM) ---------- */
-  /* 宿主页只负责外壳（边框/标题栏），HTML 内容的样式都在 shadow 内部，
+      .diagram-toolbar {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 5;
+        display: flex;
+        gap: 4px;
+        background: rgba(255, 255, 255, 0.92);
+        padding: 4px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+      }
+      .diagram-toolbar button {
+        width: 28px;
+        height: 28px;
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+        color: var(--text);
+      }
+      .diagram-toolbar button:hover {
+        background: var(--code-bg);
+      }
+      .diagram-toolbar button.reset {
+        width: auto;
+        padding: 0 8px;
+        font-size: 12px;
+      }
+      .diagram-hint {
+        position: absolute;
+        bottom: 6px;
+        right: 10px;
+        z-index: 4;
+        font-size: 11px;
+        color: var(--text-dim);
+        background: rgba(255, 255, 255, 0.85);
+        padding: 2px 6px;
+        border-radius: 4px;
+        pointer-events: none;
+      }
+
+      /* ---------- html code blocks (rendered in sandboxed iframe) ---------- */
+      /* 宿主页只负责外壳（边框/标题栏），HTML 内容的样式都在 shadow 内部，
      既不继承也不影响宿主页，达到双向样式隔离。 */
-  .html-box {
-    margin: 1.6em 0;
-    background: #fcfcfd;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-  }
-  .html-box-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 6px 12px;
-    background: #f6f8fa;
-    border-bottom: 1px solid var(--border);
-    font-size: 12px;
-  }
-  .html-box-header .label {
-    font-weight: 600;
-    color: var(--text);
-    letter-spacing: 0.4px;
-  }
-  .html-toolbar { display: flex; gap: 4px; }
-  .html-toolbar button {
-    height: 24px;
-    padding: 0 10px;
-    border: 1px solid var(--border);
-    background: #fff;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    color: var(--text);
-  }
-  .html-toolbar button:hover {
-    background: #fff;
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-  .html-render { display: block; }
+      .html-box {
+        margin: 1.6em 0;
+        background: #fcfcfd;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .html-box-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 12px;
+        background: #f6f8fa;
+        border-bottom: 1px solid var(--border);
+        font-size: 12px;
+      }
+      .html-box-header .label {
+        font-weight: 600;
+        color: var(--text);
+        letter-spacing: 0.4px;
+      }
+      .html-toolbar {
+        display: flex;
+        gap: 4px;
+      }
+      .html-toolbar button {
+        height: 24px;
+        padding: 0 10px;
+        border: 1px solid var(--border);
+        background: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        color: var(--text);
+      }
+      .html-toolbar button:hover {
+        background: #fff;
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .html-render {
+        width: 100%;
+        min-height: 480px;
+        border: none;
+        display: block;
+        background: #fff;
+      }
 
-  /* ---------- loading / empty / error states ---------- */
-  .loading,
-  .empty {
-    padding: 60px 20px;
-    text-align: center;
-    color: var(--text-dim);
-  }
-  .empty h2 {
-    color: var(--text);
-    margin: 0 0 12px;
-    border: none;
-    padding: 0;
-    font-size: 20px;
-  }
-  .empty p { margin: 8px 0; }
-  .empty code {
-    background: var(--code-bg);
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.95em;
-  }
-  .empty .warn {
-    background: var(--warn-bg);
-    border: 1px solid var(--warn-border);
-    border-radius: 8px;
-    padding: 14px 18px;
-    margin: 18px auto 0;
-    max-width: 640px;
-    text-align: left;
-    color: #57410d;
-  }
+      /* ---------- loading / empty / error states ---------- */
+      .loading,
+      .empty {
+        padding: 60px 20px;
+        text-align: center;
+        color: var(--text-dim);
+      }
+      .empty h2 {
+        color: var(--text);
+        margin: 0 0 12px;
+        border: none;
+        padding: 0;
+        font-size: 20px;
+      }
+      .empty p {
+        margin: 8px 0;
+      }
+      .empty code {
+        background: var(--code-bg);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.95em;
+      }
+      .empty .warn {
+        background: var(--warn-bg);
+        border: 1px solid var(--warn-border);
+        border-radius: 8px;
+        padding: 14px 18px;
+        margin: 18px auto 0;
+        max-width: 640px;
+        text-align: left;
+        color: #57410d;
+      }
 
-  .err-box {
-    margin: 1.6em 0;
-    padding: 14px 18px;
-    background: var(--err-bg);
-    border: 1px solid var(--err-border);
-    border-radius: 8px;
-    color: #82071e;
-  }
-  .err-box details {
-    margin-top: 8px;
-    font-size: 0.9em;
-  }
-  .err-box summary { cursor: pointer; color: var(--err-border); }
-  .err-box pre {
-    background: rgba(0,0,0,0.04);
-    margin-top: 8px;
-    padding: 8px 10px;
-    border-radius: 4px;
-    overflow: auto;
-    max-height: 220px;
-  }
+      .err-box {
+        margin: 1.6em 0;
+        padding: 14px 18px;
+        background: var(--err-bg);
+        border: 1px solid var(--err-border);
+        border-radius: 8px;
+        color: #82071e;
+      }
+      .err-box details {
+        margin-top: 8px;
+        font-size: 0.9em;
+      }
+      .err-box summary {
+        cursor: pointer;
+        color: var(--err-border);
+      }
+      .err-box pre {
+        background: rgba(0, 0, 0, 0.04);
+        margin-top: 8px;
+        padding: 8px 10px;
+        border-radius: 4px;
+        overflow: auto;
+        max-height: 220px;
+      }
 
-  /* ---------- disclaimer (PlantUML third-party) ---------- */
-  .disclaimer {
-    margin: 1em 0 1.4em;
-    padding: 10px 14px;
-    background: #f0f7ff;
-    border: 1px solid #b6d4fe;
-    border-radius: 6px;
-    color: #084c8d;
-    font-size: 13px;
-  }
+      /* ---------- disclaimer (PlantUML third-party) ---------- */
+      .disclaimer {
+        margin: 1em 0 1.4em;
+        padding: 10px 14px;
+        background: #f0f7ff;
+        border: 1px solid #b6d4fe;
+        border-radius: 6px;
+        color: #084c8d;
+        font-size: 13px;
+      }
 
-  /* small screens: stack layout instead of squeezing sidebar */
-  @media (max-width: 720px) {
-    .layout { flex-direction: column; }
-    .sidebar { position: relative; width: 100%; inset: auto; padding: 12px 0; }
-    .main { margin-left: 0; max-width: 100%; padding: 20px 18px 60px; }
-    .menu { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 12px; }
-    .menu li a { padding: 8px 12px; border-left: none; border-bottom: 3px solid transparent; }
-    .menu li a.active { border-left: none; border-bottom-color: var(--sidebar-active-border); }
-  }
-</style>
-</head>
-<body>
-<div class="layout">
-  <aside class="sidebar">
-    <h1>OMS订单系统</h1>
-    <ul class="menu" id="menu"></ul>
-  </aside>
-
-  <main class="main">
-    <div id="content" class="markdown-body">
-      <div class="loading">加载中…</div>
-    </div>
-  </main>
-</div>
-
-<script>
-'use strict';
-
-// -------- config --------
-const MENU = ['测试用例', '物理ER图', '逻辑ER图', '架构图'];
-const PLANTUML_BASE = 'https://www.plantuml.com/plantuml/svg/';
-
-// panzoom instances, disposed on every menu change to prevent listener leak
-const panzoomInstances = [];
-
-// -------- marked@4: intercept mermaid & plantuml fenced blocks --------
-// marked@4 signature is positional: (code, lang, escaped). v15+ uses a token
-// object and would silently no-op our override. Pinned marked@4 in <script>.
-function buildRenderer() {
-  const r = new marked.Renderer();
-  const orig = r.code.bind(r);
-  r.code = function (code, lang) {
-    const language = (lang || '').trim().toLowerCase();
-    if (language === 'mermaid') {
-      return '<div class="diagram-box" data-type="mermaid" '
-           + 'data-src="' + encodeURIComponent(code) + '"></div>';
-    }
-    if (language === 'plantuml' || language === 'puml' || language === 'uml') {
-      return '<div class="diagram-box" data-type="plantuml" '
-           + 'data-src="' + encodeURIComponent(code) + '"></div>';
-    }
-    if (language === 'html' || language === 'htm') {
-      return '<div class="html-box" data-type="html" '
-           + 'data-src="' + encodeURIComponent(code) + '"></div>';
-    }
-    return orig(code, lang);
-  };
-  return r;
-}
-
-function setupMarked() {
-  marked.setOptions({
-    renderer: buildRenderer(),
-    gfm: true,
-    breaks: false,
-  });
-}
-
-// -------- mermaid init (runs after defer-loaded bundle is ready) --------
-function initMermaid() {
-  if (typeof mermaid === 'undefined') return;
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: 'default',
-    securityLevel: 'loose',     // preserve <br/> inside labels
-    themeVariables: {
-      primaryColor: '#eef3ff',
-      primaryTextColor: '#1f2329',
-      primaryBorderColor: '#2b5fd6',
-      lineColor: '#646a73',
-      fontSize: '13px',
-    },
-    flowchart: { useMaxWidth: false, htmlLabels: true },
-    er:        { useMaxWidth: false },
-    sequence:  { useMaxWidth: false },
-  });
-}
-
-// -------- navigation --------
-function renderMenu() {
-  const ul = document.getElementById('menu');
-  ul.innerHTML = '';
-  MENU.forEach(name => {
-    const li = document.createElement('li');
-    const a = document.createElement('a');
-    a.href = '#' + encodeURIComponent(name);
-    a.textContent = name;
-    a.dataset.name = name;
-    li.appendChild(a);
-    ul.appendChild(li);
-  });
-}
-
-function setActive(name) {
-  document.querySelectorAll('#menu a').forEach(a => {
-    a.classList.toggle('active', a.dataset.name === name);
-  });
-}
-
-function route() {
-  const raw = decodeURIComponent((location.hash || '').slice(1));
-  const name = MENU.includes(raw) ? raw : MENU[0];
-  setActive(name);
-  loadDoc(name);
-}
-
-// -------- load + render markdown --------
-async function loadDoc(name) {
-  destroyPanzooms();
-  const content = document.getElementById('content');
-  content.innerHTML = '<div class="loading">加载中…</div>';
-
-  try {
-    const url = './' + encodeURIComponent(name) + '.md';
-    const res = await fetch(url, { cache: 'no-cache' });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const md = await res.text();
-    content.innerHTML = marked.parse(md);
-    await renderDiagrams(content);
-    renderHtmlBoxes(content);
-    // show PlantUML third-party disclaimer if any plantuml diagrams are present
-    if (content.querySelector('[data-type="plantuml"]')) {
-      const note = document.createElement('div');
-      note.className = 'disclaimer';
-      note.innerHTML = '⚠️ 本页 PlantUML 图表通过公共渲染服务 <code>plantuml.com</code> 生成，'
-                     + '图表源文会发送到该服务器处理。如需离线或内网渲染，可改用 Kroki/自托管服务。';
-      content.insertBefore(note, content.firstChild);
-    }
-  } catch (err) {
-    content.innerHTML = emptyState(name, err);
-  }
-}
-
-function emptyState(name, err) {
-  const isFileProto = location.protocol === 'file:';
-  return '<div class="empty">'
-    + '<h2>文件不存在或无法加载</h2>'
-    + '<p>未能加载 <code>' + escapeHtml(name) + '.md</code>（' + escapeHtml(err.message) + '）</p>'
-    + (isFileProto
-        ? '<div class="warn"><b>检测到 file:// 协议。</b>'
-          + '浏览器禁止本地文件使用 <code>fetch</code>，因此无法加载 <code>.md</code>。<br><br>'
-          + '请在 <code>D:\\demos\\md-render</code> 目录下启动一个本地服务，例如：<br><br>'
-          + '<code>python -m http.server 8000</code><br><br>'
-          + '然后访问 <code>http://localhost:8000/</code>。</div>'
-        : '<p>请确认该 <code>.md</code> 文件与 <code>index.html</code> 位于同一目录。</p>')
-    + '</div>';
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c =>
-    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-// -------- diagram pass: mermaid.render() per box (no batch run()) --------
-async function renderDiagrams(root) {
-  const boxes = Array.from(root.querySelectorAll('.diagram-box'));
-  for (const box of boxes) {
-    const type = box.dataset.type;
-    const src  = decodeURIComponent(box.dataset.src || '');
-    // mermaid.render() 在解析失败前已把 <div id="d{id}"> 追加到 document.body，
-    // 抛出时绕过清理，导致 body 末尾出现错误提示。记下 id 以便 catch 里移除。
-    let mermaidId = null;
-
-    const inner = document.createElement('div');
-    inner.className = 'diagram-inner';
-    box.appendChild(inner);
-    addToolbar(box);
-
-    try {
-      if (type === 'mermaid') {
-        if (typeof mermaid === 'undefined') throw new Error('mermaid 库尚未加载完成');
-        // mermaid.render() returns { svg }; per-diagram so one bad diagram
-        // doesn't blank siblings (which batch mermaid.run() can do).
-        mermaidId = 'mmd-' + Math.random().toString(36).slice(2);
-        const { svg } = await mermaid.render(mermaidId, src);
-        inner.innerHTML = svg;
-      } else if (type === 'plantuml') {
-        if (typeof plantumlEncoder === 'undefined') {
-          throw new Error('plantuml-encoder 库尚未加载完成');
+      /* small screens: stack layout instead of squeezing sidebar */
+      @media (max-width: 720px) {
+        .layout {
+          flex-direction: column;
         }
-        await new Promise((resolve, reject) => {
-          const img = new Image();
-          img.alt = 'PlantUML diagram';
-          img.onload = () => resolve();
-          img.onerror = () => reject(new Error('PlantUML 服务不可达或返回错误'));
-          img.src = PLANTUML_BASE + plantumlEncoder.encode(src);
-          inner.appendChild(img);
+        .sidebar {
+          position: relative;
+          width: 100%;
+          inset: auto;
+          padding: 12px 0;
+        }
+        .main {
+          margin-left: 0;
+          max-width: 100%;
+          padding: 20px 18px 60px;
+        }
+        /* 改回 block 列表：嵌套子菜单不能塞进 flex 否则会被拍平 */
+        .menu {
+          padding: 0 12px;
+        }
+        .menu li a {
+          padding: 8px 20px;
+          border-left: none;
+          border-bottom: 3px solid transparent;
+        }
+        /* 移动端：caret 起点同样与 .menu li a 文字起点（20px）对齐；
+           只把垂直 padding 收到 8px 跟普通项保持一致；水平 padding 和 caret 一律不缩水。 */
+        .menu .menu-group {
+          padding: 8px 20px;
+        }
+        .menu .submenu li a {
+          padding-left: 24px;
+          font-size: 13px;
+        }
+        .menu li a.active {
+          border-left: none;
+          border-bottom-color: var(--sidebar-active-border);
+        }
+        /* 嵌套项用左边框作 active 指示，避免和顶层共用底部边框造成错位 */
+        .menu .submenu li a.active {
+          border-bottom-color: transparent;
+          border-left: 3px solid var(--sidebar-active-border);
+          padding-left: 21px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <h1>$TITLE$</h1>
+        <ul class="menu" id="menu"></ul>
+      </aside>
+
+      <main class="main">
+        <div id="content" class="markdown-body">
+          <div class="loading">加载中…</div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      "use strict";
+
+      // -------- config --------
+      const MENU = $MENU$; // injected by build.js
+      const PLANTUML_BASE = "https://www.plantuml.com/plantuml/svg/";
+
+      // panzoom instances, disposed on every menu change to prevent listener leak
+      const panzoomInstances = [];
+
+      // -------- marked@4: intercept mermaid & plantuml fenced blocks --------
+      // marked@4 signature is positional: (code, lang, escaped). v15+ uses a token
+      // object and would silently no-op our override. Pinned marked@4 in <script>.
+      function buildRenderer() {
+        const r = new marked.Renderer();
+        const orig = r.code.bind(r);
+        r.code = function (code, lang) {
+          const language = (lang || "").trim().toLowerCase();
+          if (language === "mermaid") {
+            return (
+              '<div class="diagram-box" data-type="mermaid" ' +
+              'data-src="' +
+              encodeURIComponent(code) +
+              '"></div>'
+            );
+          }
+          if (
+            language === "plantuml" ||
+            language === "puml" ||
+            language === "uml"
+          ) {
+            return (
+              '<div class="diagram-box" data-type="plantuml" ' +
+              'data-src="' +
+              encodeURIComponent(code) +
+              '"></div>'
+            );
+          }
+          if (language === "html" || language === "htm") {
+            return (
+              '<div class="html-box" data-type="html" ' +
+              'data-src="' +
+              encodeURIComponent(code) +
+              '"></div>'
+            );
+          }
+          return orig(code, lang);
+        };
+        return r;
+      }
+
+      function setupMarked() {
+        marked.setOptions({
+          renderer: buildRenderer(),
+          gfm: true,
+          breaks: false,
         });
-      } else {
-        throw new Error('未知图表类型: ' + type);
       }
-      attachPanzoom(inner);
-    } catch (e) {
-      // 移除 mermaid 残留的 <div id="d{id}">（API 的清理在 throw 之后，不会执行），
-      // 让错误只在图表原位置显示，不再追加到 body 末尾。
-      if (mermaidId) {
-        const stray = document.getElementById('d' + mermaidId);
-        if (stray) stray.remove();
+
+      // -------- mermaid init (runs after defer-loaded bundle is ready) --------
+      function initMermaid() {
+        if (typeof mermaid === "undefined") return;
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: "default",
+          securityLevel: "loose", // preserve <br/> inside labels
+          themeVariables: {
+            primaryColor: "#eef3ff",
+            primaryTextColor: "#1f2329",
+            primaryBorderColor: "#2b5fd6",
+            lineColor: "#646a73",
+            fontSize: "13px",
+          },
+          flowchart: { useMaxWidth: false, htmlLabels: true },
+          er: { useMaxWidth: false },
+          sequence: { useMaxWidth: false },
+        });
       }
-      const label = (type === 'mermaid' ? 'Mermaid' : type === 'plantuml' ? 'PlantUML' : type);
-      inner.innerHTML = errBox(label + ' 渲染失败: ' + (e && e.message ? e.message : e), src);
-    }
-  }
-}
 
-function errBox(message, source) {
-  return '<div class="err-box">'
-    + '<div><b>' + escapeHtml(message) + '</b></div>'
-    + '<details><summary>查看源文</summary>'
-    + '<pre>' + escapeHtml(source) + '</pre>'
-    + '</details>'
-    + '</div>';
-}
+      // -------- navigation --------
+      // 树形菜单渲染：递归把 MENU 转成嵌套 <ul>。
+      // 叶子节点 (children.length === 0) → <a>，可点击跳转；
+      // 分组节点 (有 children) → <span class="menu-group"> 标题 + 嵌套 <ul>。
+      // 同一个 name 在树中必须唯一（hash 路由只按 name 定位），由 docs 目录约定保证。
+      function renderMenu() {
+        const ul = document.getElementById("menu");
+        ul.innerHTML = "";
+        for (const node of MENU) {
+          ul.appendChild(buildMenuNode(node));
+        }
+      }
 
-// -------- html pass: render fenced ```html blocks inside a shadow DOM --------
-// 目的：把用户写的 HTML 片段放进 Shadow DOM —— 宿主页的 CSS 不会渗入影响渲染，
-// 反过来用户 HTML 里的选择器也不会影响宿主页（h1/code/table 等保持原样）。
-// 限制：用户写入的脚本会照常执行（同源 shadow 树内仍可运行），信任作者本人的
-// markdown 源。
-function renderHtmlBoxes(root) {
-  const boxes = Array.from(root.querySelectorAll('.html-box'));
-  for (const box of boxes) {
-    const src = decodeURIComponent(box.dataset.src || '');
-    addHtmlHeader(box);
-    const host = document.createElement('div');
-    host.className = 'html-render';
-    box.appendChild(host);
+      function buildMenuNode(node) {
+        const li = document.createElement("li");
+        if (isLeaf(node)) {
+          const a = document.createElement("a");
+          a.href = "#" + encodeURIComponent(node.name);
+          a.textContent = node.name;
+          a.title = node.name; // 省略后 hover 展示全文
+          a.dataset.name = node.name;
+          li.appendChild(a);
+        } else {
+          // 分组节点：button 化的标题，点击切换 .collapsed
+          li.classList.add("menu-group-item", "collapsed"); // 默认收起
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "menu-group";
+          btn.setAttribute("aria-expanded", "false");
+          btn.title = node.name; // 整个 button 区域都触发 tooltip
+          const caret = document.createElement("span");
+          caret.className = "menu-group-caret";
+          caret.textContent = "▼";
+          const nameSpan = document.createElement("span");
+          nameSpan.className = "menu-group-name";
+          nameSpan.textContent = node.name;
+          btn.appendChild(caret);
+          btn.appendChild(nameSpan);
+          btn.addEventListener("click", () => {
+            const collapsed = li.classList.toggle("collapsed");
+            btn.setAttribute("aria-expanded", String(!collapsed));
+          });
+          li.appendChild(btn);
+          const sub = document.createElement("ul");
+          sub.className = "submenu";
+          for (const child of node.children) {
+            sub.appendChild(buildMenuNode(child));
+          }
+          li.appendChild(sub);
+        }
+        return li;
+      }
 
-    const shadow = host.attachShadow({ mode: 'open' });
-    shadow.innerHTML = HTML_SHADOW_STYLE;
-    const frame = document.createElement('div');
-    frame.className = 'frame';
-    frame.innerHTML = src;
-    shadow.appendChild(frame);
-  }
-}
+      function isLeaf(node) {
+        return !node.children || node.children.length === 0;
+      }
 
-// 注入到 shadow 内部的基础排版样式，仅作用于该 shadow 树。
-// 用户写 <h1>/<p>/<table> 等常见元素时不会因为 shadow 隔离而"裸奔"。
-const HTML_SHADOW_STYLE =
-  '<style>'
-  + ':host{display:block;}'
-  + '.frame{box-sizing:border-box;padding:14px 18px;color:#1f2329;line-height:1.65;'
-  +   'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;}'
-  + '.frame *{box-sizing:border-box;}'
-  + '.frame h1,.frame h2,.frame h3,.frame h4{margin-top:1.4em;margin-bottom:.5em;font-weight:600;line-height:1.3;}'
-  + '.frame h1{font-size:22px;padding-bottom:6px;border-bottom:1px solid #d0d7de;}'
-  + '.frame h2{font-size:18px;padding-bottom:4px;border-bottom:1px solid #d0d7de;}'
-  + '.frame h3{font-size:16px;}'
-  + '.frame h4{font-size:15px;}'
-  + '.frame p{margin:.6em 0;}'
-  + '.frame a{color:#2b5fd6;text-decoration:none;}'
-  + '.frame a:hover{text-decoration:underline;}'
-  + '.frame ul,.frame ol{padding-left:1.6em;margin:.6em 0;}'
-  + '.frame li{margin:.2em 0;}'
-  + '.frame blockquote{margin:1em 0;padding:.5em 1em;color:#646a73;border-left:4px solid #d0d7de;background:#fafbfc;}'
-  + '.frame code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;background:#f6f8fa;padding:2px 6px;border-radius:4px;font-size:.9em;}'
-  + '.frame pre{background:#f6f8fa;padding:12px 14px;border-radius:6px;overflow:auto;font-size:.88em;line-height:1.5;}'
-  + '.frame pre code{background:transparent;padding:0;}'
-  + '.frame table{border-collapse:collapse;margin:.6em 0;font-size:.92em;}'
-  + '.frame th,.frame td{border:1px solid #d0d7de;padding:6px 12px;text-align:left;}'
-  + '.frame th{background:#f6f8fa;font-weight:600;}'
-  + '.frame tr:nth-child(even) td{background:#fafbfc;}'
-  + '.frame button,.frame input,.frame select,.frame textarea{font:inherit;color:inherit;}'
-  + '.frame img{max-width:100%;}'
-  + '</style>';
+      // 在树里按 name 找节点（DFS）。hash 路由只携带 name，所以这里是按名定位的唯一入口。
+      function findNode(nodes, name) {
+        for (const node of nodes) {
+          if (node.name === name) return node;
+          if (!isLeaf(node)) {
+            const found = findNode(node.children, name);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
 
-function addHtmlHeader(box) {
-  const header = document.createElement('div');
-  header.className = 'html-box-header';
-  header.innerHTML =
-      '<span class="label">HTML 预览</span>'
-    + '<div class="html-toolbar">'
-    +   '<button data-act="copy" title="复制源码">复制</button>'
-    + '</div>';
-  header.addEventListener('click', async e => {
-    const btn = e.target.closest('button');
-    if (!btn || btn.dataset.act !== 'copy') return;
-    const src = decodeURIComponent(box.dataset.src || '');
-    const old = btn.textContent;
-    try {
-      await navigator.clipboard.writeText(src);
-      btn.textContent = '已复制';
-    } catch (_) {
-      // file:// 或权限拒绝时的兜底：临时 textarea + execCommand
-      const ta = document.createElement('textarea');
-      ta.value = src;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand('copy'); } catch (_) {}
-      ta.remove();
-      btn.textContent = '已复制';
-    }
-    setTimeout(() => { btn.textContent = old; }, 1200);
-  });
-  box.appendChild(header);
-}
+      // 找不到目标时回退到第一个叶子，保证页面始终有内容显示。
+      function findFirstLeaf(nodes) {
+        for (const node of nodes) {
+          if (isLeaf(node)) return node;
+          const found = findFirstLeaf(node.children || []);
+          if (found) return found;
+        }
+        return null;
+      }
 
-// -------- panzoom --------
-function attachPanzoom(inner) {
-  if (typeof panzoom === 'undefined') return;
-  const pz = panzoom(inner, {
-    maxZoom: 8,
-    minZoom: 0.2,
-    smoothScroll: false,
-    bounds: true,
-    boundsPadding: 0.15,
-    zoomDoubleClickSpeed: 1,            // disable double-click zoom (surprising)
-    beforeWheel: e => !(e.ctrlKey || e.metaKey), // only Ctrl/⌘+wheel zooms
-  });
-  panzoomInstances.push(pz);
-  inner.__pz = pz;
-}
+      // 活动叶子被用户折叠的祖先藏起来时，从 DOM 向上走一遍强制展开，
+      // 避免切到子项后菜单里看不到当前选中项。
+      function expandActiveAncestors() {
+        const activeLink = document.querySelector("#menu a.active");
+        if (!activeLink) return;
+        let group = activeLink.closest(".menu-group-item");
+        while (group) {
+          if (group.classList.contains("collapsed")) {
+            group.classList.remove("collapsed");
+            const btn = group.querySelector(":scope > .menu-group");
+            if (btn) btn.setAttribute("aria-expanded", "true");
+          }
+          group =
+            group.parentElement &&
+            group.parentElement.closest(".menu-group-item");
+        }
+      }
 
-function destroyPanzooms() {
-  while (panzoomInstances.length) {
-    try { panzoomInstances.pop().dispose(); } catch (_) {}
-  }
-}
+      function setActive(name) {
+        document.querySelectorAll("#menu a").forEach((a) => {
+          a.classList.toggle("active", a.dataset.name === name);
+        });
+      }
 
-function addToolbar(box) {
-  const bar = document.createElement('div');
-  bar.className = 'diagram-toolbar';
-  bar.innerHTML =
-      '<button title="放大" data-act="in">+</button>'
-    + '<button title="缩小" data-act="out">−</button>'
-    + '<button class="reset" title="重置视图" data-act="reset">重置</button>';
-  bar.addEventListener('click', e => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    const inner = box.querySelector('.diagram-inner');
-    const pz = inner && inner.__pz;
-    if (!pz) return;
-    const r = box.getBoundingClientRect();
-    const cx = r.width / 2, cy = r.height / 2;
-    if (btn.dataset.act === 'in')       pz.smoothZoom(cx, cy, 1.25);
-    else if (btn.dataset.act === 'out') pz.smoothZoom(cx, cy, 1/1.25);
-    else if (btn.dataset.act === 'reset') {
-      pz.moveTo(0, 0);
-      pz.zoomAbs(0, 0, 1);
-    }
-  });
-  box.appendChild(bar);
+      function route() {
+        const raw = decodeURIComponent((location.hash || "").slice(1));
+        const found = raw ? findNode(MENU, raw) : null;
+        const target = found || findFirstLeaf(MENU);
+        if (!target) return;
+        setActive(target.name);
+        expandActiveAncestors();
+        loadDoc(target.name);
+      }
 
-  const hint = document.createElement('div');
-  hint.className = 'diagram-hint';
-  hint.textContent = 'Ctrl+滚轮缩放 · 拖拽平移';
-  box.appendChild(hint);
-}
+      // -------- load + render markdown --------
+      // 不再走 fetch：从 MENU 树里按 name 找到节点，直接用 node.content 渲染。
+      // 找不到节点（hash 拼错/失效）→ emptyState；节点存在但 content 为空 → 空态提示。
+      async function loadDoc(name) {
+        destroyPanzooms();
+        const content = document.getElementById("content");
 
-// -------- bootstrap --------
-// DOMContentLoaded fires AFTER all deferred <script>s have executed, so by the
-// time boot() runs, marked/mermaid/plantumlEncoder/panzoom are guaranteed to
-// be defined globals.
-function boot() {
-  setupMarked();
-  initMermaid();
-  renderMenu();
-  window.addEventListener('hashchange', route);
-  route();
-}
+        const node = findNode(MENU, name);
+        if (!node) {
+          content.innerHTML = emptyState(name, new Error("菜单中找不到该节点"));
+          return;
+        }
+        if (!node.content) {
+          content.innerHTML = '<div class="empty"><p>该节点暂无内容</p></div>';
+          return;
+        }
 
-document.addEventListener('DOMContentLoaded', boot);
-</script>
-</body>
+        try {
+          content.innerHTML = marked.parse(node.content);
+          await renderDiagrams(content);
+          renderHtmlBoxes(content);
+          // show PlantUML third-party disclaimer if any plantuml diagrams are present
+          /* if (content.querySelector('[data-type="plantuml"]')) {
+            const note = document.createElement("div");
+            note.className = "disclaimer";
+            note.innerHTML =
+              "⚠️ 本页 PlantUML 图表通过公共渲染服务 <code>plantuml.com</code> 生成，" +
+              "图表源文会发送到该服务器处理。如需离线或内网渲染，可改用 Kroki/自托管服务。";
+            content.insertBefore(note, content.firstChild);
+          } */
+        } catch (err) {
+          content.innerHTML = emptyState(name, err);
+        }
+      }
+
+      function emptyState(name, err) {
+        const msg = err && err.message ? err.message : String(err);
+        return (
+          '<div class="empty">' +
+          "<h2>渲染失败</h2>" +
+          "<p>无法渲染 <code>" +
+          escapeHtml(name) +
+          "</code>：" +
+          escapeHtml(msg) +
+          "</p>" +
+          "</div>"
+        );
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      }
+
+      // -------- diagram pass: mermaid.render() per box (no batch run()) --------
+      async function renderDiagrams(root) {
+        const boxes = Array.from(root.querySelectorAll(".diagram-box"));
+        for (const box of boxes) {
+          const type = box.dataset.type;
+          const src = decodeURIComponent(box.dataset.src || "");
+          // mermaid.render() 在解析失败前已把 <div id="d{id}"> 追加到 document.body，
+          // 抛出时绕过清理，导致 body 末尾出现错误提示。记下 id 以便 catch 里移除。
+          let mermaidId = null;
+
+          const inner = document.createElement("div");
+          inner.className = "diagram-inner";
+          box.appendChild(inner);
+          addToolbar(box);
+
+          try {
+            if (type === "mermaid") {
+              if (typeof mermaid === "undefined")
+                throw new Error("mermaid 库尚未加载完成");
+              // mermaid.render() returns { svg }; per-diagram so one bad diagram
+              // doesn't blank siblings (which batch mermaid.run() can do).
+              mermaidId = "mmd-" + Math.random().toString(36).slice(2);
+              const { svg } = await mermaid.render(mermaidId, src);
+              inner.innerHTML = svg;
+            } else if (type === "plantuml") {
+              if (typeof plantumlEncoder === "undefined") {
+                throw new Error("plantuml-encoder 库尚未加载完成");
+              }
+              await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.alt = "PlantUML diagram";
+                img.onload = () => resolve();
+                img.onerror = () =>
+                  reject(new Error("PlantUML 服务不可达或返回错误"));
+                img.src = PLANTUML_BASE + plantumlEncoder.encode(src);
+                inner.appendChild(img);
+              });
+            } else {
+              throw new Error("未知图表类型: " + type);
+            }
+            attachPanzoom(inner);
+          } catch (e) {
+            // 移除 mermaid 残留的 <div id="d{id}">（API 的清理在 throw 之后，不会执行），
+            // 让错误只在图表原位置显示，不再追加到 body 末尾。
+            if (mermaidId) {
+              const stray = document.getElementById("d" + mermaidId);
+              if (stray) stray.remove();
+            }
+            const label =
+              type === "mermaid"
+                ? "Mermaid"
+                : type === "plantuml"
+                  ? "PlantUML"
+                  : type;
+            inner.innerHTML = errBox(
+              label + " 渲染失败: " + (e && e.message ? e.message : e),
+              src,
+            );
+          }
+        }
+      }
+
+      function errBox(message, source) {
+        return (
+          '<div class="err-box">' +
+          "<div><b>" +
+          escapeHtml(message) +
+          "</b></div>" +
+          "<details><summary>查看源文</summary>" +
+          "<pre>" +
+          escapeHtml(source) +
+          "</pre>" +
+          "</details>" +
+          "</div>"
+        );
+      }
+
+      // -------- html pass: render fenced ```html blocks inside a sandboxed iframe --------
+      // 用 iframe (srcdoc) 而不是 Shadow DOM，原因：
+      //   1. Shadow DOM 内的脚本实际拿到的是**宿主页**的 document/window，
+      //      document.getElementById 查不到 shadow 里的元素，window.x = ... 挂到了宿主页。
+      //   2. innerHTML 写入的 <script> 根本不会执行（HTML5 规范）。
+      //   iframe 给每个 HTML 块一个独立 document/window，脚本照常跑、onclick 等内联
+      //   事件处理器也能在 iframe 自己的全局里查找函数。
+      //   双向样式隔离：宿主页样式进不来，用户写的 <style> 也只在 iframe 内部生效。
+      // sandbox 只开 allow-scripts：脚本能跑，但 unique origin 阻断了 localStorage /
+      // cookie / 同源 fetch，对一个文档查看器够用。
+      function renderHtmlBoxes(root) {
+        const boxes = Array.from(root.querySelectorAll(".html-box"));
+        for (const box of boxes) {
+          const src = decodeURIComponent(box.dataset.src || "");
+          addHtmlHeader(box);
+          const iframe = document.createElement("iframe");
+          iframe.className = "html-render";
+          iframe.setAttribute("sandbox", "allow-scripts");
+          iframe.srcdoc = buildIframeDoc(src);
+          box.appendChild(iframe);
+        }
+      }
+
+      function buildIframeDoc(userHtml) {
+        return (
+          '<!doctype html><html><head><meta charset="utf-8">' +
+          "<style>" +
+          HTML_IFRAME_BASE_CSS +
+          "</style>" +
+          "</head><body>" +
+          userHtml +
+          "</body></html>"
+        );
+      }
+
+      // 注入到 iframe head 的基础排版：让用户写 <h1>/<p>/<table> 等常见元素
+      // 不会因为独立的 document 而"裸奔"。作用范围仅限该 iframe。
+      const HTML_IFRAME_BASE_CSS =
+        "body{margin:0;padding:14px 18px;color:#1f2329;line-height:1.65;" +
+        'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Helvetica Neue",Arial,sans-serif;}' +
+        "*{box-sizing:border-box;}" +
+        "h1,h2,h3,h4{margin-top:1.4em;margin-bottom:.5em;font-weight:600;line-height:1.3;}" +
+        "h1{font-size:22px;padding-bottom:6px;border-bottom:1px solid #d0d7de;}" +
+        "h2{font-size:18px;padding-bottom:4px;border-bottom:1px solid #d0d7de;}" +
+        "h3{font-size:16px;}" +
+        "h4{font-size:15px;}" +
+        "p{margin:.6em 0;}" +
+        "a{color:#2b5fd6;text-decoration:none;}" +
+        "a:hover{text-decoration:underline;}" +
+        "ul,ol{padding-left:1.6em;margin:.6em 0;}" +
+        "li{margin:.2em 0;}" +
+        "blockquote{margin:1em 0;padding:.5em 1em;color:#646a73;border-left:4px solid #d0d7de;background:#fafbfc;}" +
+        'code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;background:#f6f8fa;padding:2px 6px;border-radius:4px;font-size:.9em;}' +
+        "pre{background:#f6f8fa;padding:12px 14px;border-radius:6px;overflow:auto;font-size:.88em;line-height:1.5;}" +
+        "pre code{background:transparent;padding:0;}" +
+        "table{border-collapse:collapse;margin:.6em 0;font-size:.92em;}" +
+        "th,td{border:1px solid #d0d7de;padding:6px 12px;text-align:left;}" +
+        "th{background:#f6f8fa;font-weight:600;}" +
+        "tr:nth-child(even) td{background:#fafbfc;}" +
+        "button,input,select,textarea{font:inherit;color:inherit;}" +
+        "img{max-width:100%;}";
+
+      function addHtmlHeader(box) {
+        const header = document.createElement("div");
+        header.className = "html-box-header";
+        header.innerHTML =
+          '<span class="label">HTML 预览</span>' +
+          '<div class="html-toolbar">' +
+          '<button data-act="copy" title="复制源码">复制</button>' +
+          "</div>";
+        header.addEventListener("click", async (e) => {
+          const btn = e.target.closest("button");
+          if (!btn || btn.dataset.act !== "copy") return;
+          const src = decodeURIComponent(box.dataset.src || "");
+          const old = btn.textContent;
+          try {
+            await navigator.clipboard.writeText(src);
+            btn.textContent = "已复制";
+          } catch (_) {
+            // file:// 或权限拒绝时的兜底：临时 textarea + execCommand
+            const ta = document.createElement("textarea");
+            ta.value = src;
+            ta.style.position = "fixed";
+            ta.style.opacity = "0";
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+              document.execCommand("copy");
+            } catch (_) {}
+            ta.remove();
+            btn.textContent = "已复制";
+          }
+          setTimeout(() => {
+            btn.textContent = old;
+          }, 1200);
+        });
+        box.appendChild(header);
+      }
+
+      // -------- panzoom --------
+      function attachPanzoom(inner) {
+        if (typeof panzoom === "undefined") return;
+        const pz = panzoom(inner, {
+          maxZoom: 8,
+          minZoom: 0.2,
+          smoothScroll: false,
+          // 关闭边界约束：之前 bounds: true + boundsPadding: 0.15
+          // 在缩放后边界太紧（仅容器 15% 的可移范围），
+          // 用户拖动时根本到不了图的内容边缘。
+          // 现在的代价是用户可能把图拖到完全看不见——
+          // 用工具栏的"重置"按钮（moveTo(0,0) + zoomAbs(1)）回到中心。
+          bounds: false,
+          zoomDoubleClickSpeed: 1, // disable double-click zoom (surprising)
+          beforeWheel: (e) => !(e.ctrlKey || e.metaKey), // only Ctrl/⌘+wheel zooms
+        });
+        panzoomInstances.push(pz);
+        inner.__pz = pz;
+      }
+
+      function destroyPanzooms() {
+        while (panzoomInstances.length) {
+          try {
+            panzoomInstances.pop().dispose();
+          } catch (_) {}
+        }
+      }
+
+      function addToolbar(box) {
+        const bar = document.createElement("div");
+        bar.className = "diagram-toolbar";
+        bar.innerHTML =
+          '<button title="放大" data-act="in">+</button>' +
+          '<button title="缩小" data-act="out">−</button>' +
+          '<button class="reset" title="重置视图" data-act="reset">重置</button>';
+        bar.addEventListener("click", (e) => {
+          const btn = e.target.closest("button");
+          if (!btn) return;
+          const inner = box.querySelector(".diagram-inner");
+          const pz = inner && inner.__pz;
+          if (!pz) return;
+          const r = box.getBoundingClientRect();
+          const cx = r.width / 2,
+            cy = r.height / 2;
+          if (btn.dataset.act === "in") pz.smoothZoom(cx, cy, 1.25);
+          else if (btn.dataset.act === "out") pz.smoothZoom(cx, cy, 1 / 1.25);
+          else if (btn.dataset.act === "reset") {
+            pz.moveTo(0, 0);
+            pz.zoomAbs(0, 0, 1);
+          }
+        });
+        box.appendChild(bar);
+
+        const hint = document.createElement("div");
+        hint.className = "diagram-hint";
+        hint.textContent = "Ctrl+滚轮缩放 · 拖拽平移";
+        box.appendChild(hint);
+      }
+
+      // -------- bootstrap --------
+      // DOMContentLoaded fires AFTER all deferred <script>s have executed, so by the
+      // time boot() runs, marked/mermaid/plantumlEncoder/panzoom are guaranteed to
+      // be defined globals.
+      function boot() {
+        setupMarked();
+        initMermaid();
+        renderMenu();
+        window.addEventListener("hashchange", route);
+        route();
+      }
+
+      document.addEventListener("DOMContentLoaded", boot);
+    </script>
+  </body>
 </html>
