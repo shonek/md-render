@@ -88,6 +88,48 @@
         border-bottom: 1px solid #374151;
         letter-spacing: 0.5px;
       }
+      /* search input — sits between title and menu */
+      .search-box {
+        margin: 0 20px 14px;
+      }
+      .search-box input {
+        width: 100%;
+        padding: 7px 10px;
+        border-radius: 6px;
+        border: 1px solid #374151;
+        background: rgba(0, 0, 0, 0.25);
+        color: var(--sidebar-text);
+        font-size: 13px;
+        font-family: inherit;
+        outline: none;
+        transition:
+          border-color 0.12s,
+          background 0.12s;
+      }
+      .search-box input::placeholder {
+        color: var(--sidebar-text-dim);
+      }
+      .search-box input:focus {
+        border-color: var(--accent);
+        background: rgba(0, 0, 0, 0.35);
+      }
+      /* 关掉 WebKit 自带的 ✕ 按钮，统一样式 */
+      .search-box input::-webkit-search-cancel-button {
+        -webkit-appearance: none;
+        appearance: none;
+      }
+      /* no-results placeholder (rendered by renderMenu, 仅在无匹配时显示) */
+      .menu .no-results {
+        display: none;
+        padding: 11px 20px;
+        color: var(--sidebar-text-dim);
+        font-size: 13px;
+        font-style: italic;
+        list-style: none;
+      }
+      .menu.has-no-results .no-results {
+        display: block;
+      }
       .menu {
         list-style: none;
         padding: 0;
@@ -547,6 +589,16 @@
     <div class="layout">
       <aside class="sidebar">
         <h1>$TITLE$</h1>
+        <div class="search-box">
+          <input
+            type="search"
+            id="search"
+            placeholder="搜索菜单…"
+            aria-label="搜索菜单"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
         <ul class="menu" id="menu"></ul>
       </aside>
 
@@ -647,6 +699,11 @@
         for (const node of MENU) {
           ul.appendChild(buildMenuNode(node));
         }
+        // 占位元素：搜索无结果时显示；renderMenu 每次都重建 ul，在末尾追加一份即可
+        const noResults = document.createElement("li");
+        noResults.className = "no-results";
+        noResults.textContent = "无匹配项";
+        ul.appendChild(noResults);
       }
 
       function buildMenuNode(node) {
@@ -731,6 +788,67 @@
             group.parentElement &&
             group.parentElement.closest(".menu-group-item");
         }
+      }
+
+      // -------- search filter --------
+      // 每次输入都重新渲染菜单（保留当前 doc 的高亮），再按 query 过滤：
+      //   - 叶子：data-name 包含 query（大小写不敏感）→ 可见
+      //   - 分组：自身名包含 OR 任一后代匹配 → 可见且强制展开
+      //   - 全部隐藏时显示 "无匹配项"。
+      // 清空 query 时回到 boot 默认行为：所有分组折叠，再展开当前 doc 的祖先。
+      function applySearch(query) {
+        const q = (query || "").trim().toLowerCase();
+        renderMenu();
+        // renderMenu 抹掉了所有 .active，重新高亮当前 doc（即使它被搜索过滤掉）
+        const raw = decodeURIComponent((location.hash || "").slice(1));
+        const current = raw || ((findFirstLeaf(MENU) || {}).name || "");
+        if (current) setActive(current);
+
+        const ul = document.getElementById("menu");
+        if (!q) {
+          expandActiveAncestors();
+          ul.classList.remove("has-no-results");
+          return;
+        }
+
+        let anyMatch = false;
+        for (const li of Array.from(ul.children)) {
+          if (filterLi(li, q)) anyMatch = true;
+        }
+        ul.classList.toggle("has-no-results", !anyMatch);
+      }
+
+      // 递归过滤一个 <li>。返回 true 表示自身或后代至少有一项匹配。
+      // no-results <li> 没有 <a>，落到 return false 分支被自然忽略。
+      function filterLi(li, q) {
+        if (li.classList.contains("menu-group-item")) {
+          // 分组：自身名 + 递归后代
+          const btn = li.querySelector(":scope > .menu-group");
+          const nameSpan = btn && btn.querySelector(".menu-group-name");
+          const ownName = nameSpan ? nameSpan.textContent : "";
+          const ownMatches = ownName.toLowerCase().includes(q);
+          // 强制展开，让匹配的后代可见
+          li.classList.remove("collapsed");
+          if (btn) btn.setAttribute("aria-expanded", "true");
+
+          let anyChild = false;
+          const submenu = li.querySelector(":scope > .submenu");
+          if (submenu) {
+            for (const child of Array.from(submenu.children)) {
+              if (filterLi(child, q)) anyChild = true;
+            }
+          }
+
+          const visible = ownMatches || anyChild;
+          li.style.display = visible ? "" : "none";
+          return visible;
+        }
+        // 叶子
+        const a = li.querySelector("a");
+        if (!a) return false;
+        const matches = (a.dataset.name || "").toLowerCase().includes(q);
+        li.style.display = matches ? "" : "none";
+        return matches;
       }
 
       function setActive(name) {
@@ -1055,7 +1173,24 @@
         setupMarked();
         initMermaid();
         renderMenu();
-        window.addEventListener("hashchange", route);
+        const search = document.getElementById("search");
+        // IME 组合输入（拼音）期间跳过 input 事件，否则每打一个字母都重新过滤会出现闪烁；
+        // compositionend 时再统一应用一次。
+        search.addEventListener("input", (e) => {
+          if (e.isComposing) return;
+          applySearch(e.target.value);
+        });
+        search.addEventListener("compositionend", (e) => {
+          applySearch(e.target.value);
+        });
+        window.addEventListener("hashchange", () => {
+          // 切到新 doc 时清空搜索：避免列表仍被过滤、看不到当前 doc 的兄弟项
+          if (search.value) {
+            search.value = "";
+            applySearch("");
+          }
+          route();
+        });
         route();
       }
 
